@@ -1,0 +1,12 @@
+*.md
+.git
+.gitignore
+.env
+.env.local
+tmp/
+dist/
+coverage.txt
+coverage.html
+Dockerfile
+docker-compose.yml
+Makefile

@@ -1,0 +1,506 @@
+{
+	"info": {
+		"name": "Employees API - Полное тестирование",
+		"description": "Коллекция для тестирования REST API управления сотрудниками",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "employeeId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "01. Healthcheck - Проверка работы сервиса",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 200 OK', function() {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Ответ содержит status=ok', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.status).to.eql('ok');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/v1/healthz",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "healthz"]
+				}
+			}
+		},
+		{
+			"name": "02. Создание сотрудника - Успех",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 201 Created', function() {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Заголовок Location присутствует', function() {",
+							"    pm.response.to.have.header('Location');",
+							"});",
+							"",
+							"pm.test('Ответ содержит все поля', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.all.keys('id', 'fullName', 'phone', 'city', 'createdAt', 'updatedAt');",
+							"    pm.expect(json.fullName).to.eql('Әлихан Нұрғалиев');",
+							"    pm.expect(json.phone).to.eql('+77771234567');",
+							"    pm.expect(json.city).to.eql('Алматы');",
+							"    ",
+							"    pm.collectionVariables.set('employeeId', json.id);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Әлихан Нұрғалиев\",\n  \"phone\": \"+77771234567\",\n  \"city\": \"Алматы\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "03. Получение сотрудника по ID - Успех",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 200 OK', function() {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Данные сотрудника корректны', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.fullName).to.eql('Әлихан Нұрғалиев');",
+							"    pm.expect(json.phone).to.eql('+77771234567');",
+							"    pm.expect(json.city).to.eql('Алматы');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees/{{employeeId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees", "{{employeeId}}"]
+				}
+			}
+		},
+		{
+			"name": "04. Создание дубликата - Ошибка 409",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 409 Conflict', function() {",
+							"    pm.response.to.have.status(409);",
+							"});",
+							"",
+							"pm.test('Код ошибки duplicate_phone', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('duplicate_phone');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Болат Қасымов\",\n  \"phone\": \"+77771234567\",\n  \"city\": \"Астана\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "05. Валидация - Короткое имя",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 422 Unprocessable Entity', function() {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							"pm.test('Ошибка валидации fullName', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('validation_error');",
+							"    pm.expect(json.details).to.have.property('fullName');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"А\",\n  \"phone\": \"+77011111111\",\n  \"city\": \"Шымкент\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "06. Валидация - Неверный формат телефона",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 422 Unprocessable Entity', function() {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							"pm.test('Ошибка валидации phone', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('validation_error');",
+							"    pm.expect(json.details).to.have.property('phone');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Нұрлан Әбдіғалиев\",\n  \"phone\": \"87771234567\",\n  \"city\": \"Қарағанды\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "07. Валидация - Лишние поля",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 400 Bad Request', function() {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Код ошибки invalid_json', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('invalid_json');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Ерлан Мұратов\",\n  \"phone\": \"+77022222222\",\n  \"city\": \"Атырау\",\n  \"extraField\": \"болмауы керек\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "08. Получение несуществующего ID - 404",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 404 Not Found', function() {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test('Код ошибки not_found', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('not_found');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees/00000000-0000-0000-0000-000000000000",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees", "00000000-0000-0000-0000-000000000000"]
+				}
+			}
+		},
+		{
+			"name": "09. Невалидный UUID - 400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 400 Bad Request', function() {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Код ошибки invalid_id', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('invalid_id');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees/not-a-uuid",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees", "not-a-uuid"]
+				}
+			}
+		},
+		{
+			"name": "10. Неподдерживаемый метод - 405",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 405 Method Not Allowed', function() {",
+							"    pm.response.to.have.status(405);",
+							"});",
+							"",
+							"pm.test('Код ошибки method_not_allowed', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('method_not_allowed');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Айдар Сейітов\",\n  \"phone\": \"+77033333333\",\n  \"city\": \"Ақтөбе\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "11. Неверный Content-Type - 400",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 400 Bad Request', function() {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Код ошибки invalid_content_type', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.code).to.eql('invalid_content_type');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "text/plain"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Серік Əбділлаев\",\n  \"phone\": \"+77044444444\",\n  \"city\": \"Тараз\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "12. Граничный случай - Минимальное имя",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 201 Created', function() {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Имя из 2 символов принято', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.fullName).to.eql('Ән');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"Ән\",\n  \"phone\": \"+77055555555\",\n  \"city\": \"Орал\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		},
+		{
+			"name": "13. Тримминг пробелов",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Статус 201 Created', function() {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Пробелы удалены', function() {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.fullName).to.eql('Дана Жұмабаева');",
+							"    pm.expect(json.city).to.eql('Павлодар');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fullName\": \"  Дана Жұмабаева  \",\n  \"phone\": \"+77066666666\",\n  \"city\": \"  Павлодар  \"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/v1/employees",
+					"host": ["{{baseUrl}}"],
+					"path": ["v1", "employees"]
+				}
+			}
+		}
+	]
+}
